@@ -1,10 +1,12 @@
 package jp.jaxa.iss.kibo.rpc.sampleapk;
 
 import android.util.Log;
+import java.lang.Math;
 
 import gov.nasa.arc.astrobee.Kinematics;
 import jp.jaxa.iss.kibo.rpc.api.KiboRpcService;
 
+import org.apache.commons.io.filefilter.TrueFileFilter;
 import org.apache.commons.math3.geometry.euclidean.threed.*;
 
 import java.util.List;
@@ -14,6 +16,15 @@ import gov.nasa.arc.astrobee.types.Point;
 import gov.nasa.arc.astrobee.types.Quaternion;
 
 import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.CvType;
+import org.opencv.core.Rect;
+import org.opencv.core.Scalar;
+
+import org.opencv.imgproc.Imgproc;
+
+import org.opencv.objdetect.QRCodeDetector;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,6 +36,10 @@ import java.util.List;
 public class YourService extends KiboRpcService {
     private final String TAG = this.getClass().getSimpleName() ;
     //@Override
+    public static double calculateDistance(Point pt1 , Point pt2) {
+        double dx = pt1.getX()- pt2.getX();
+        double dy = pt1.getY()- pt2.getY();
+        double dz = pt1.getZ()- pt2.getZ();
 
     public static DoubleVectorList closestPoint (List<DoubleVectorList> pointsDistances ){
         List <Double> distances = new ArrayList<>();
@@ -69,346 +84,523 @@ public class YourService extends KiboRpcService {
         DoubleVectorList distanceOverBridge = new DoubleVectorList();
         if (faceNormal1.dotProduct(faceNormal2)==0){
             Vector3D pt3 = project(intersectedPoints.get(1),face2);
-            double distance = pt1.distance(intersectedPoints.get(0)) + intersectedPoints.get(0).distance(pt3);
-            distanceOverBridge.setDistance(distance);
-            distanceOverBridge.addVector(pt1);
-            distanceOverBridge.addVector(intersectedPoints.get(0));
-            distanceOverBridge.addVector(pt3);
-
-        }else{
-            Vector3D pt3 = project(intersectedPoints.get(0),face1);
-            Vector3D pt4 = project(intersectedPoints.get(1),face2);
-            double distance = pt1.distance(intersectedPoints.get(0))+intersectedPoints.get(0).distance(pt3)+pt3.distance(pt4);
-            distanceOverBridge.setDistance(distance);
-            distanceOverBridge.addVector(pt1);
-            distanceOverBridge.addVector(intersectedPoints.get(0));
-            distanceOverBridge.addVector(pt3);
-            distanceOverBridge.addVector(pt4);
+    public static Integer getClosestPoint(List<Integer> activeTargets , List<DistancePointList> pointsAndDistances , Boolean scanned){
+        if (!scanned){
+            activeTargets.add(0);
         }
-        Double distance = distanceOverBridge.getDistance();
-        List<Vector3D> points = distanceOverBridge.getVectorList();
-        System.out.println("distanceOverBridge :"+distance);
-        System.out.println(points);
-
-        return distanceOverBridge;
-    }
-
-    public static boolean pointBelongsToSegment(Vector3D pt1, Vector3D pt2, Vector3D intersecionPoint) {
-        System.out.println("started pointBelongsTSegment");
-
-        Vector3D segmentVector = pt2.subtract(pt1);
-        Vector3D pointVector = intersecionPoint.subtract(pt1);
-        double segmentLengthSquared = segmentVector.getNormSq();
-        double dotProduct = pointVector.dotProduct(segmentVector);
-        boolean pointBelongsToSegment = dotProduct > 0 && dotProduct < segmentLengthSquared;
-        return pointBelongsToSegment;
-    }
-
-
-    public static Integer closestBridgeNum (Vector3D pt1 , Line segment , List<String> intersectedBridges ,  List<List<Plane>> bridgesFaces ){
-        System.out.println("started closestBridgeNum");
-
-        List<Integer> bridges = new ArrayList<>();
-        List<Integer> faces = new ArrayList<>();
-        for (String str : intersectedBridges) {
-            String[] list =str.split("/");
-            bridges.add(Integer.parseInt(list[0]));
-            faces.add(Integer.parseInt(list[1]));
-        }
-        if (intersectedBridges.size()==1){
-            return bridges.get(0);
-        }else {
-            List<Vector3D> intersectedPoints = new ArrayList<>();
-            List<Double> distances = new ArrayList<>();
-            for (int i =0 ; i<intersectedBridges.size() ;i++ ){
-                Vector3D point = bridgesFaces.get(bridges.get(i)).get(faces.get(i)).intersection(segment);
-                double distance = pt1.distance(point);
-                intersectedPoints.add(point);
-                distances.add(distance);
-            }
-
-            int minIndex = 0;
-            for (int i = 1; i < distances.size(); i++) {
-                if (distances.get(i) < distances.get(minIndex)) {
-                    minIndex = i;
-                }
-            }
-            return bridges.get(minIndex);
-        }
-    }
-
-    public static List<String> intersectedBridges (Vector3D pt1, Vector3D pt2,Line segment , List<List<Plane>> bridgesFaces , List<List<Vector3D>> bridgesBorders ) {
-        System.out.println("started intersectedBridges");
-        List<String> intersectedBridges = new ArrayList<>() ;
-        Vector3D origin = new Vector3D(0,0,0);
-        for ( int i =0 ; i<5 ; i++){
-            boolean isIntersected = false;
-            int j =0 ;
-            while (!isIntersected && j<6){
-                System.out.println("checking");
-                Vector3D intersectionPoint = bridgesFaces.get(i).get(j).intersection(segment);
-                if ((intersectionPoint!=origin ) && (isWithinBrders(intersectionPoint , i , bridgesBorders )) && (pointBelongsToSegment(pt1, pt2, intersectionPoint )) ){
-                    isIntersected = true ;
-                    intersectedBridges.add(i+"/"+j);
-                    System.out.println("intersected bridge num : "+i+"face num: "+j);
-                }
-                j++;
+        int minIndex = activeTargets.get(0);
+        for(Integer index : activeTargets ) {
+            if (pointsAndDistances.get(index).getDistance() <pointsAndDistances.get(minIndex).getDistance()) {
+                minIndex = index;
             }
         }
-        System.out.println( "intersected bridges :" + intersectedBridges);
-        return intersectedBridges;
+        return minIndex;
     }
 
-
-    public static DoubleVectorList getShortestDistance(Vector3D pt1 , Vector3D pt2 , List<List<Plane>> bridgesFaces , List<List<Vector3D>> bridgesBorders , Boolean firstCalculation ) {
-        System.out.println("started getShortestDistance");
-        Line segment = new Line(pt1 , pt2);
-        Vector3D origin = new Vector3D(0,0,0);
-        //Segment segment1 = new Segment(pt1 , pt2 , segment);
-        List<String> intersectedBridges = intersectedBridges(pt1,pt2,segment , bridgesFaces , bridgesBorders);
-        System.out.println(intersectedBridges);
-        DoubleVectorList shortestDistance = new DoubleVectorList();
-
-        if (intersectedBridges.isEmpty()) {
-            if (firstCalculation){
-                shortestDistance.setDistance(pt1.distance(pt2));
-                System.out.println("done");
-                shortestDistance.addVector(pt1);
-                System.out.println("done");
-                shortestDistance.addVector(pt2);
-                System.out.println("done");
-                System.out.println("i am here");
-
-            }else{
-                shortestDistance.setDistance(pt1.distance(pt2));
-                shortestDistance.addVector(pt2);
-            }
         }
-        else {
-            Integer closestBridgeNum = closestBridgeNum(pt1 , segment , intersectedBridges ,  bridgesFaces);
-            System.out.println("closestBridgeNum : "+closestBridgeNum);
-            List<Plane> intersectedFaces = new ArrayList<>();
-            List<Vector3D> intersectedPoints = new ArrayList<>();
-            for (int i = 0; i < 6; i++) {
-                Vector3D intersecionPoint = bridgesFaces.get(closestBridgeNum).get(i).intersection(segment);
-                if ((intersecionPoint != origin)  && (!intersectedPoints.contains(intersecionPoint))) {
-                    intersectedFaces.add(bridgesFaces.get(closestBridgeNum).get(i));
-                    intersectedPoints.add((intersecionPoint));
-                    System.out.println("intersected faces : "+ intersectedFaces);
-                    System.out.println("intersected Points :" + intersectedPoints);
-                    System.out.println("YES");
-                }
-                else
-                {
-                    System.out.println("NO");
-                }
-            }
-            if (intersectedPoints.size()==1 &&intersectedBridges.size()==1 ){
-                shortestDistance.setDistance(pt1.distance(pt2));
-                if (firstCalculation){
-                    shortestDistance.addVector(pt1);
-                    shortestDistance.addVector(pt2);
-                }else{
-                    shortestDistance.addVector(pt2);
-                }
-
-            }else if (intersectedPoints.size()==1 &&intersectedBridges.size()>1){
-                Double distance = pt1.distance(intersectedPoints.get(0));
-                shortestDistance.addVector(pt1);
-                shortestDistance.addVector(intersectedPoints.get(0));
-                shortestDistance.setDistance(distance+ getShortestDistance(intersectedPoints.get(0), pt2 ,bridgesFaces,bridgesBorders, false).getDistance());
-            }else {
-                DoubleVectorList distanceOverBridge = getDistanceOverBridge(pt1, intersectedPoints ,intersectedFaces );
-                double distance = distanceOverBridge.getDistance();
-                List<Vector3D> Points = distanceOverBridge.getVectorList();
-                int l = Points.size()-1;
-                for (Vector3D point : Points){
-                    shortestDistance.addVector(point);
-                }
-                shortestDistance.setDistance(distance+ getShortestDistance(Points.get(l), pt2 ,bridgesFaces,bridgesBorders, false).getDistance());
-                for (Vector3D point : getShortestDistance(Points.get(l), pt2 ,bridgesFaces,bridgesBorders, false).getVectorList() ){
-                    shortestDistance.addVector(point);
-                }
-            }
-        }
-        return shortestDistance ;
     }
-
-    public static Integer getPointIndex (Point point , List<Point> Points){
-        int pointIndex =-1 ;
-        Boolean found = false;
-        int i =0 ;
-        while (!found && i<Points.size()){
-            if (Points.get(i) == point ){
-                pointIndex = i;
-                found= true;
-            }
-            i++;
-        }
-        return  pointIndex;
-    }
-
-    public static Plane[] getFaces (double xMin , double xMax, double yMin, double yMax, double zMin, double zMax) {
-        Vector3D v1 = new Vector3D(xMin, yMin, zMin);
-        Vector3D v2 = new Vector3D(xMax, yMin, zMin);
-        Vector3D v3 = new Vector3D(xMax, yMax, zMin);
-        Vector3D v4 = new Vector3D(xMin, yMax, zMin);
-        Vector3D v5 = new Vector3D(xMin, yMin, zMax);
-        Vector3D v6 = new Vector3D(xMax, yMin, zMax);
-        Vector3D v7 = new Vector3D(xMax, yMax, zMax);
-        Vector3D v8 = new Vector3D(xMin, yMax, zMax);
-
-        Plane[] faces = new Plane[6];
-        faces[0] = new Plane(v1, v2, v3); // Bottom face
-        faces[1] = new Plane(v5, v6, v7); // Top face
-        faces[2] = new Plane(v1, v5, v6); // Side face 1
-        faces[3] = new Plane(v2, v6, v7); // Side face 2
-        faces[4] = new Plane(v3, v7, v8); // Side face 3
-        faces[5] = new Plane(v4, v8, v5); // Side face 4
-
-        return faces;
-    }
-
     protected void runPlan1(){
-        List<List<Plane>> bridgesFaces = new ArrayList<>();
-        bridgesFaces.add(Arrays.asList(getFaces(12.783, 13.071, -21.8899, -21.6929, 16.8385, 17.0665)));
-        bridgesFaces.add(Arrays.asList(getFaces(12.8652, 12.9628, -21.0734, -20.7314, 16.3861, 16.6401)));
-        bridgesFaces.add(Arrays.asList(getFaces(12.185, 13.665, -20.3826, -20.2826, 16.1475, 16.6725)));
-        bridgesFaces.add(Arrays.asList(getFaces(12.7955, 13.3525, -20.0635, -19.7305, 17.1055, 17.1305)));
-        bridgesFaces.add(Arrays.asList(getFaces(12.563, 12.709, -19.1449, -18.8099, 16.6544, 16.8164)));
 
-        Vector3D pnt  = new Vector3D(34.783,-27.8899,26.8385);
-        Vector3D pnt1 = new Vector3D(31.071,-30.6929,25.0665);
-        List<List<Vector3D>> bridgesBorders = new ArrayList<>();
-        // Bridge 1
-        List<Vector3D> bridge1 = new ArrayList<>();
-        bridge1.add(new Vector3D(12.783, -21.8899, 16.8385));
-        bridge1.add(new Vector3D(13.071, -21.6929, 17.0665));
-        bridgesBorders.add(bridge1);
-        // Bridge 2
-        List<Vector3D> bridge2 = new ArrayList<>();
-        bridge2.add(new Vector3D(12.8652, -21.0734, 16.3861));
-        bridge2.add(new Vector3D(12.9628, -20.7314, 16.6401));
-        bridgesBorders.add(bridge2);
 
-        // Bridge 3
-        List<Vector3D> bridge3 = new ArrayList<>();
-        bridge3.add(new Vector3D(12.185, -20.3826, 16.1475));
-        bridge3.add(new Vector3D(13.665, -20.2826, 16.6725));
-        bridgesBorders.add(bridge3);
+        Point start = new Point(9.815 ,-9.806, 4.293);
+        Point goal = new Point( 11.143 , -6.7607 , 4.9654);
+        Quaternion goalQuaternions = new Quaternion(0f ,0f, -0.707f ,0.707f);
 
-        // Bridge 4
-        List<Vector3D> bridge4 = new ArrayList<>();
-        bridge4.add(new Vector3D(12.7955, -20.0635, 17.1055));
-        bridge4.add(new Vector3D(13.3525, -18.8099, 17.1305));
-        bridgesBorders.add(bridge4);
-
-        // Bridge 5
-        List<Vector3D> bridge5 = new ArrayList<>();
-        bridge5.add(new Vector3D(12.563, -19.1449, 16.6544));
-        bridge5.add(new Vector3D(12.709, -18.8099, 16.8164));
-        bridgesBorders.add(bridge5);
-
+        Point infrontOfQr = new Point(11.369 ,-8.5518 , 4.48);
+        Point infrontOfTarget1 = new Point(11.204d, -9.754899999999916d, 5.47d);
+        Point infrontOfTarget2 =new Point(10.45488d, -9.192672d, 4.631600000000089d);
+        Point infrontOfTarget3 = new Point(10.7106d, -7.76857d, 4.720400000000062d) ;
+        Point infrontOfTarget4=new Point(10.736600000000063d, -6.615472d, 5.20281d);
+        Point infrontOfTarget5 = new Point(11.0435d, -7.9229d, 5.4276d);
+        Point infrontOfTarget6 = new Point(11.167599999999924d, -9.0475d, 4.938d);
 
         List<Point> Points = new ArrayList<>();
-        Points.add(new Point(11.381944, -8.566172, 3.76203));
-        Points.add(new Point(11.2746, -9.92284, 5.2988));
-        Points.add(new Point(10.612, -9.0709, 4.48));
-        Points.add(new Point(10.71, -7.7, 4.48));
-        Points.add(new Point(10.51, -6.7185, 5.1804));
-        Points.add(new Point(11.114, -7.9756, 5.3393));
-        Points.add(new Point(11.355, -8.9929, 4.7818));
         Points.add(new Point(11.369, -8.5518, 4.48));
+        Points.add(new Point(11.204, -9.754899999999916, 5.47));
+        Points.add(new Point(10.45488, -9.192672, 4.631600000000089));
+        Points.add(new Point(10.7106, -7.76857, 4.720400000000062));
+        Points.add(new Point(10.736600000000063, -6.615472, 5.20281));
+        Points.add(new Point(11.0435, -7.9229, 5.4276));
+        Points.add(new Point(11.167599999999924, -9.0475, 4.938));
 
         List<Quaternion> Quaternions = new ArrayList<>();
-        Quaternions.add(new Quaternion(0f, 0f, 0f, 1f));
+        Quaternions.add(new Quaternion(0f, 0.707f, 0f, 0.707f));
         Quaternions.add(new Quaternion(0f, 0f, -0.707f, 0.707f));
         Quaternions.add(new Quaternion(0.5f, 0.5f, -0.5f, 0.5f));
         Quaternions.add(new Quaternion(0f, 0.707f, 0f, 0.707f));
         Quaternions.add(new Quaternion(0f, 0f, -1f, 0f));
         Quaternions.add(new Quaternion(-0.5f, -0.5f, -0.5f, 0.5f));
-        Quaternions.add(new Quaternion(0f, 0f, 0f, 1f));
-        Quaternions.add(new Quaternion(0f, 0.707f, 0f, 0.707f));
 
-        Point goal = new Point( 11.143 , -6.7607 , 4.9654);
-        Quaternion goalQuaternions = new Quaternion(0f ,0f, -0.707f ,0.707f);
-        Vector3D goalVector =  new Vector3D(goal.getX(),goal.getY(),goal.getZ());
+        List<List<DistancePointList>> pointsAndDistances = new ArrayList<>();
+
+        //Qr
+        List<DistancePointList> QrPoints = new ArrayList<>();
+        DistancePointList Qr_Qr= new DistancePointList();
+        Qr_Qr.setDistance(0.0);
+        Qr_Qr.addPoint(new Point(0,0,0));
+        QrPoints.add(Qr_Qr);
+        DistancePointList Qr_1 = new DistancePointList();
+        Qr_1.addPoint(new Point(11.323028, -8.788241, 5.141627));
+        Qr_1.addPoint(infrontOfTarget1);
+        Double distance1 = calculateDistance(infrontOfQr , Qr_1.getPointsList().get(0)) + calculateDistance(Qr_1.getPointsList().get(0) , infrontOfTarget1);
+        Qr_1.setDistance(distance1);
+        QrPoints.add(Qr_1);
+        DistancePointList Qr_2 = new DistancePointList();
+        Qr_2.addPoint(new Point( 10.781596, -8.66281, 5.035678));
+        Qr_2.addPoint(infrontOfTarget2);
+        Double distance2 = calculateDistance(infrontOfQr , Qr_2.getPointsList().get(0)) + calculateDistance(Qr_2.getPointsList().get(0) , infrontOfTarget2);
+        Qr_2.setDistance(distance2);
+        QrPoints.add(Qr_2);
+        DistancePointList Qr_3= new DistancePointList();
+        Qr_3.addPoint(new Point(11.183367 , -8.716602 ,5.371128));
+        Qr_3.setDistance(calculateDistance(infrontOfQr , Qr_3.getPointsList().get(0)) + calculateDistance( Qr_3.getPointsList().get(0) , infrontOfTarget3));
+        QrPoints.add(Qr_3);
+        DistancePointList Qr_4= new DistancePointList();
+        Qr_4.addPoint(new Point(11.183367 , -8.716602 ,5.371128));
+        Qr_4.setDistance(calculateDistance(infrontOfQr , Qr_4.getPointsList().get(0)) + calculateDistance( Qr_4.getPointsList().get(0) , infrontOfTarget4));
+        QrPoints.add(Qr_4);
+        DistancePointList Qr_5= new DistancePointList();
+        Qr_5.addPoint(new Point(11.183367 , -8.716602 ,5.371128));
+        Qr_5.setDistance(calculateDistance(infrontOfQr , Qr_5.getPointsList().get(0)) + calculateDistance( Qr_5.getPointsList().get(0) , infrontOfTarget5));
+        QrPoints.add(Qr_5);
+        DistancePointList Qr_6= new DistancePointList();
+        Qr_6.setDistance(calculateDistance(infrontOfQr,infrontOfTarget6));
+        Qr_6.addPoint(infrontOfTarget6);
+        QrPoints.add(Qr_6);
+        DistancePointList Qr_start= new DistancePointList();
+        Qr_start.setDistance(0.0);
+        Qr_start.addPoint(new Point(0,0,0));
+        QrPoints.add(Qr_start);
+        DistancePointList Qr_end= new DistancePointList();
+        Qr_end.setDistance(0.0);
+        Qr_end.addPoint(new Point(0,0,0));
+        QrPoints.add(Qr_end);
+
+        pointsAndDistances.add(QrPoints);
+
+        //Target1
+        List<DistancePointList> Target1Points = new ArrayList<>();
+        DistancePointList T1_Qr = new DistancePointList();
+        T1_Qr.addPoint(new Point(11.323028, -8.788241, 5.141627));
+        T1_Qr.addPoint(infrontOfQr);
+        T1_Qr.setDistance(distance1);
+        Target1Points.add(T1_Qr);
+        DistancePointList T1_T1= new DistancePointList();
+        T1_T1.setDistance(0.0);
+        T1_T1.addPoint(new Point(0,0,0));
+        Target1Points.add(T1_T1);
+        DistancePointList T1_T2= new DistancePointList();
+        T1_T2.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget2));
+        T1_T2.addPoint(infrontOfTarget2);
+        Target1Points.add(T1_T2);
+        DistancePointList T1_T3= new DistancePointList();
+        T1_T3.addPoint(new Point(10.893754,-7.969446, 4.748193));
+        T1_T3.addPoint(infrontOfTarget3);
+        T1_T3.setDistance(calculateDistance(infrontOfTarget1 , T1_T3.getPointsList().get(0)) + calculateDistance( T1_T3.getPointsList().get(0) , infrontOfTarget3));
+        Target1Points.add(T1_T3);
+        DistancePointList T1_T4= new DistancePointList();
+        T1_T4.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget4));
+        T1_T4.addPoint(infrontOfTarget4);
+        Target1Points.add(T1_T4);
+        DistancePointList T1_T5= new DistancePointList();
+        T1_T5.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget5));
+        T1_T5.addPoint(infrontOfTarget5);
+        Target1Points.add(T1_T5);
+        DistancePointList T1_T6= new DistancePointList();
+        T1_T6.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget6));
+        T1_T6.addPoint(infrontOfTarget6);
+        Target1Points.add(T1_T6);
+        DistancePointList T1_start= new DistancePointList();
+        T1_start.setDistance(0.0);
+        T1_start.addPoint(new Point(0,0,0));
+        Target1Points.add(T1_start);
+        DistancePointList T1_goal= new DistancePointList();
+        T1_goal.addPoint(new Point(11.204, -8.542963, 4.923365));
+        T1_goal.addPoint(goal);
+        T1_goal.setDistance(calculateDistance(infrontOfTarget1 , T1_goal.getPointsList().get(0)) + calculateDistance( T1_goal.getPointsList().get(0) , goal));
+        Target1Points.add(T1_goal);
+
+        pointsAndDistances.add(Target1Points);
+
+        //target 2
+        List<DistancePointList> Target2Points = new ArrayList<>();
+        DistancePointList T2_Qr = new DistancePointList();
+        T2_Qr.addPoint(new Point( 10.781596, -8.66281, 5.035678));
+        T2_Qr.addPoint(infrontOfQr);
+        T2_Qr.setDistance(distance2);
+        Target2Points.add(T2_Qr);
+        DistancePointList T2_T1= new DistancePointList();
+        T2_T1.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget2));
+        T2_T1.addPoint(infrontOfTarget1);
+        Target2Points.add(T2_T1);
+        DistancePointList T2_T2= new DistancePointList();
+        T2_T2.setDistance(0.0);
+        T2_T2.addPoint(new Point(0,0,0));
+        Target2Points.add(T2_T2);
+        DistancePointList T2_T3= new DistancePointList();
+        T2_T3.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T2_T3.addPoint(new Point(10.91861, -7.847378, 4.802304));
+        T2_T3.addPoint(infrontOfTarget3);
+        T2_T3.setDistance(calculateDistance(infrontOfTarget2 , T2_T3.getPointsList().get(0)) + calculateDistance( T2_T3.getPointsList().get(0) , T2_T3.getPointsList().get(1))+calculateDistance( T2_T3.getPointsList().get(1) , infrontOfTarget3));
+        Target2Points.add(T1_T3);
+        DistancePointList T2_T4= new DistancePointList();
+        T2_T4.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T2_T4.addPoint(new Point(10.91861, -7.847378, 4.802304));
+        T2_T4.addPoint(infrontOfTarget4);
+        T2_T4.setDistance(calculateDistance(infrontOfTarget2 , T2_T4.getPointsList().get(0)) + calculateDistance( T2_T4.getPointsList().get(0) , T2_T4.getPointsList().get(1))+calculateDistance( T2_T4.getPointsList().get(1) , infrontOfTarget4));
+        Target2Points.add(T2_T4);
+        DistancePointList T2_T5= new DistancePointList();
+        T2_T5.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T2_T5.addPoint(infrontOfTarget6);
+        T2_T5.setDistance(calculateDistance(infrontOfTarget2 , T2_T5.getPointsList().get(0)) + calculateDistance( T2_T5.getPointsList().get(0) , infrontOfTarget5));
+        Target2Points.add(T2_T5);
+        DistancePointList T2_T6= new DistancePointList();
+        T2_T6.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T2_T6.addPoint(infrontOfTarget6);
+        T2_T6.setDistance(calculateDistance(infrontOfTarget2 , T2_T6.getPointsList().get(0)) + calculateDistance( T2_T6.getPointsList().get(0) , infrontOfTarget6));
+        Target2Points.add(T2_T6);
+        DistancePointList T2_start= new DistancePointList();
+        T2_start.setDistance(0.0);
+        T2_start.addPoint(new Point(0,0,0));
+        Target2Points.add(T2_start);
+        DistancePointList T2_goal= new DistancePointList();
+        T2_goal.addPoint(new Point(10.612, -8.866519, 4.976946));
+        T2_goal.addPoint(new Point(11.204, -8.542963, 4.923365));
+        T2_goal.addPoint(goal);
+        T2_goal.setDistance(calculateDistance(infrontOfTarget2 , T2_goal.getPointsList().get(0)) + calculateDistance( T2_goal.getPointsList().get(0) , T2_goal.getPointsList().get(1))+calculateDistance( T2_goal.getPointsList().get(1) , goal));
+        Target2Points.add(T2_goal);
+
+        pointsAndDistances.add(Target2Points);
+
+        // Target 3
+        List<DistancePointList> Target3Points = new ArrayList<>();
+        DistancePointList T3_Qr = new DistancePointList();
+        T3_Qr.addPoint((new Point(11.183367 , -8.716602 ,5.371128)));
+        T3_Qr.addPoint(infrontOfQr);
+        T3_Qr.setDistance(calculateDistance(infrontOfQr , T3_Qr.getPointsList().get(0)) + calculateDistance( T3_Qr.getPointsList().get(0) , infrontOfTarget3));
+        Target3Points.add(T3_Qr);
+        DistancePointList T3_T1= new DistancePointList();
+        T3_T1.addPoint(new Point(10.893754,-7.969446, 4.748193));
+        T3_T1.addPoint(infrontOfTarget1);
+        T3_T1.setDistance(calculateDistance(infrontOfTarget1 , T1_T3.getPointsList().get(0)) + calculateDistance( T1_T3.getPointsList().get(0) , infrontOfTarget3));
+        Target3Points.add(T3_T1);
+        DistancePointList T3_T2= new DistancePointList();
+        T3_T2.addPoint(new Point(10.91861, -7.847378, 4.802304));
+        T3_T2.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T3_T2.addPoint(infrontOfTarget2);
+        T3_T2.setDistance(calculateDistance(infrontOfTarget2 , T2_T3.getPointsList().get(0)) + calculateDistance( T2_T3.getPointsList().get(0) , T2_T3.getPointsList().get(1))+calculateDistance( T2_T3.getPointsList().get(1) , infrontOfTarget3));
+        Target3Points.add(T3_T2);
+        DistancePointList T3_T3= new DistancePointList();
+        T3_T3.setDistance(0.0);
+        T3_T3.addPoint(new Point(0,0,0));   Target3Points.add(T3_T3);
+        Target3Points.add(T3_T3);
+        DistancePointList T3_T4= new DistancePointList();
+        T3_T4.addPoint(new Point(10.71, -7.143459, 5.151553));
+        T3_T4.addPoint(infrontOfTarget4);
+        T3_T4.setDistance(calculateDistance(infrontOfTarget3 , T3_T4.getPointsList().get(0)) + calculateDistance( T3_T4.getPointsList().get(0) , infrontOfTarget4));
+        Target3Points.add(T3_T4);
+        DistancePointList T3_T5= new DistancePointList();
+        T3_T5.addPoint(new Point(11.110324, -7.494255, 5.292847));
+        T3_T5.addPoint(infrontOfTarget5);
+        T3_T5.setDistance(calculateDistance(infrontOfTarget3 , T3_T5.getPointsList().get(0)) + calculateDistance( T3_T5.getPointsList().get(0) , infrontOfTarget5));
+        Target3Points.add(T3_T5);
+        DistancePointList T3_T6= new DistancePointList();
+        T3_T6.addPoint(new Point(10.91861,-7.847378, 4.802304));
+        T3_T6.addPoint(infrontOfTarget6);
+        T3_T6.setDistance(calculateDistance(infrontOfTarget3 , T3_T6.getPointsList().get(0)) + calculateDistance( T3_T6.getPointsList().get(0) , infrontOfTarget6));
+        Target3Points.add(T3_T6);
+        DistancePointList T3_start= new DistancePointList();
+        T3_start.setDistance(0.0);
+        T3_start.addPoint(new Point(0,0,0));
+        Target3Points.add(T3_start);
+        DistancePointList T3_goal= new DistancePointList();
+        T3_goal.addPoint(goal);
+        T3_goal.setDistance(calculateDistance(infrontOfTarget3 , goal));
+        Target3Points.add(T3_goal);
+
+        pointsAndDistances.add(Target3Points);
+
+        //Target4
+        List<DistancePointList> Target4Points = new ArrayList<>();
+        DistancePointList T4_Qr = new DistancePointList();
+        T4_Qr.addPoint(new Point(11.183367 , -8.716602 ,5.371128));
+        T4_Qr.addPoint(infrontOfQr);
+        T4_Qr.setDistance(calculateDistance(infrontOfQr , T4_Qr.getPointsList().get(0)) + calculateDistance( T4_Qr.getPointsList().get(0) , infrontOfTarget4));
+        Target4Points.add(T4_Qr);
+        DistancePointList T4_T1= new DistancePointList();
+        T4_T1.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget4));
+        T4_T1.addPoint(infrontOfTarget1);
+        Target4Points.add(T4_T1);
+        DistancePointList T4_T2= new DistancePointList();
+        T4_T2.addPoint(new Point(10.91861, -7.847378, 4.802304));
+        T4_T2.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T4_T2.addPoint(infrontOfTarget2);
+        T4_T2.setDistance(calculateDistance(infrontOfTarget4 , T4_T2.getPointsList().get(0)) + calculateDistance( T4_T2.getPointsList().get(0) , T4_T2.getPointsList().get(1))+calculateDistance( T4_T2.getPointsList().get(1) , infrontOfTarget2));
+        Target4Points.add(T3_T2);
+        DistancePointList T4_T3= new DistancePointList();
+        T4_T3.addPoint(new Point(10.71, -7.143459, 5.151553));
+        T4_T3.addPoint(infrontOfTarget3);
+        T4_T3.setDistance(calculateDistance(infrontOfTarget3 , T4_T3.getPointsList().get(0)) + calculateDistance( T4_T3.getPointsList().get(0) , infrontOfTarget4));
+        Target4Points.add(T4_T3);
+        DistancePointList T4_T4= new DistancePointList();
+        T4_T4.setDistance(0.0);
+        T4_T4.addPoint(new Point(0,0,0));
+        Target4Points.add(T4_T4);
+        DistancePointList T4_T5= new DistancePointList();
+        T4_T5.addPoint(infrontOfTarget5);
+        T4_T5.setDistance(calculateDistance(infrontOfTarget4, infrontOfTarget5));
+        Target4Points.add(T4_T5);
+        DistancePointList T4_T6= new DistancePointList();
+        T4_T6.addPoint(new Point(10.91861, -7.847378, 4.802304));
+        T4_T6.addPoint(infrontOfTarget6);
+        T4_T6.setDistance(calculateDistance(infrontOfTarget6 , T4_T6.getPointsList().get(0)) + calculateDistance( T4_T6.getPointsList().get(0) , infrontOfTarget4));
+        Target4Points.add(T4_T6);
+        DistancePointList T4_start= new DistancePointList();
+        T4_start.setDistance(0.0);
+        T4_start.addPoint(new Point(0,0,0));
+        Target4Points.add(T4_start);
+        DistancePointList T4_goal= new DistancePointList();
+        T4_goal.addPoint(goal);
+        T4_goal.setDistance(calculateDistance(infrontOfTarget4 , goal));
+        Target4Points.add(T4_goal);
+
+        pointsAndDistances.add(Target4Points);
+
+        //Target5
+        List<DistancePointList> Target5Points = new ArrayList<>();
+        DistancePointList T5_Qr = new DistancePointList();
+        T5_Qr.addPoint(new Point(11.183367 , -8.716602 ,5.371128));
+        T5_Qr.addPoint(infrontOfQr);
+        T5_Qr.setDistance(calculateDistance(infrontOfQr , T5_Qr.getPointsList().get(0)) + calculateDistance( T5_Qr.getPointsList().get(0) , infrontOfTarget5));
+        Target5Points.add(T5_Qr);
+        DistancePointList T5_T1= new DistancePointList();
+        T5_T1.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget5));
+        T5_T1.addPoint(infrontOfTarget1);
+        Target5Points.add(T5_T1);
+        DistancePointList T5_T2= new DistancePointList();
+        T5_T2.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T5_T2.addPoint(infrontOfTarget2);
+        T5_T2.setDistance(calculateDistance(infrontOfTarget2 , T5_T2.getPointsList().get(0)) + calculateDistance( T5_T2.getPointsList().get(0) , infrontOfTarget5));
+        Target5Points.add(T5_T2);
+        DistancePointList T5_T3= new DistancePointList();
+        T5_T3.addPoint(new Point(11.110324, -7.494255, 5.292847));
+        T5_T3.addPoint(infrontOfTarget3);
+        T5_T3.setDistance(calculateDistance(infrontOfTarget3 , T5_T3.getPointsList().get(0)) + calculateDistance( T5_T3.getPointsList().get(0) , infrontOfTarget5));
+        Target5Points.add(T5_T3);
+        DistancePointList T5_T4= new DistancePointList();
+        T5_T4.addPoint(infrontOfTarget4);
+        T5_T4.setDistance(calculateDistance(infrontOfTarget4, infrontOfTarget5));
+        Target5Points.add(T5_T4);
+        DistancePointList T5_T5= new DistancePointList();
+        T5_T5.setDistance(0.0);
+        T5_T5.addPoint(new Point(0,0,0));
+        Target5Points.add(T5_T5);
+        DistancePointList T5_T6= new DistancePointList();
+        T5_T6.addPoint(new Point(11.195232, -8.363515,5.298435));
+        T5_T6.addPoint(infrontOfTarget6);
+        T5_T6.setDistance(calculateDistance(infrontOfTarget6 , T5_T6.getPointsList().get(0)) + calculateDistance( T5_T6.getPointsList().get(0) , infrontOfTarget5));
+        Target5Points.add(T5_T6);
+        DistancePointList T5_start= new DistancePointList();
+        T5_start.setDistance(0.0);
+        T5_start.addPoint(new Point(0,0,0));
+        Target5Points.add(T5_start);
+        DistancePointList T5_goal= new DistancePointList();
+        T5_goal.addPoint(new Point(11.064038, -7.321528, 5.281515));
+        T5_goal.addPoint(goal);
+        T5_goal.setDistance(calculateDistance(infrontOfTarget5 , T5_goal.getPointsList().get(0)) + calculateDistance( T5_goal.getPointsList().get(0) , goal));
+        Target5Points.add(T5_goal);
+
+        pointsAndDistances.add(Target5Points);
+
+        //Target6
+        List<DistancePointList> Target6Points = new ArrayList<>();
+        DistancePointList T6_Qr = new DistancePointList();
+        T6_Qr.setDistance(calculateDistance(infrontOfQr,infrontOfTarget6));
+        T6_Qr.addPoint(infrontOfQr);
+        Target6Points.add(T6_Qr);
+        DistancePointList T6_T1= new DistancePointList();
+        T6_T1.setDistance(calculateDistance(infrontOfTarget1,infrontOfTarget6));
+        T6_T1.addPoint(infrontOfTarget1);
+        Target6Points.add(T6_T1);
+        DistancePointList T6_T2= new DistancePointList();
+        T6_T2.addPoint(new Point(10.91861, -9.060668, 4.924728));
+        T6_T2.addPoint(infrontOfTarget2);
+        T6_T2.setDistance(calculateDistance(infrontOfTarget2 , T6_T2.getPointsList().get(0)) + calculateDistance( T6_T2.getPointsList().get(0) , infrontOfTarget6));
+        Target6Points.add(T6_T2);
+        DistancePointList T6_T3= new DistancePointList();
+        T6_T3.addPoint(new Point(10.91861,-7.847378, 4.802304));
+        T6_T3.addPoint(infrontOfTarget3);
+        T6_T3.setDistance(calculateDistance(infrontOfTarget3 , T6_T3.getPointsList().get(0)) + calculateDistance( T6_T3.getPointsList().get(0) , infrontOfTarget6));
+        Target6Points.add(T6_T3);
+        DistancePointList T6_T4= new DistancePointList();
+        T6_T4.addPoint(new Point(10.91861, -7.847378, 4.802304));
+        T6_T4.addPoint(infrontOfTarget4);
+        T6_T4.setDistance(calculateDistance(infrontOfTarget6 , T6_T4.getPointsList().get(0)) + calculateDistance( T6_T4.getPointsList().get(0) , infrontOfTarget4));
+        Target6Points.add(T6_T4);
+        DistancePointList T6_T5= new DistancePointList();
+        T6_T5.addPoint(new Point(11.195232, -8.363515,5.298435));
+        T6_T5.addPoint(infrontOfTarget5);
+        T6_T5.setDistance(calculateDistance(infrontOfTarget6 , T6_T5.getPointsList().get(0)) + calculateDistance( T6_T5.getPointsList().get(0) , infrontOfTarget5));
+        Target6Points.add(T6_T5);
+        DistancePointList T6_T6= new DistancePointList();
+        T6_T6.setDistance(0.0);
+        T6_T6.addPoint(new Point(0,0,0));
+        Target6Points.add(T6_T6);
+        DistancePointList T6_start= new DistancePointList();
+        T6_start.setDistance(0.0);
+        T6_start.addPoint(new Point(0,0,0));
+        Target6Points.add(T6_start);
+        DistancePointList T6_goal= new DistancePointList();
+        T6_goal.addPoint(new Point(11.204, -8.542963, 4.923365));
+        T6_goal.addPoint(goal);
+        T6_goal.setDistance(calculateDistance(infrontOfTarget6 , T6_goal.getPointsList().get(0)) + calculateDistance( T6_goal.getPointsList().get(0) , goal));
+        Target6Points.add(T6_goal);
+
+        pointsAndDistances.add(Target6Points);
+
+        // Start
+        List<DistancePointList> startPoints = new ArrayList<>();
+        DistancePointList start_Qr = new DistancePointList();
+        start_Qr.addPoint(new Point(10.923028, -8.788241, 5.141627));
+        start_Qr.addPoint(infrontOfQr);
+        start_Qr.setDistance(calculateDistance(start , start_Qr.getPointsList().get(0)) + calculateDistance( start_Qr.getPointsList().get(0) , infrontOfQr));
+        startPoints.add(start_Qr);
+        DistancePointList start_T1= new DistancePointList();
+        start_T1.setDistance(calculateDistance(infrontOfTarget1,start));
+        start_T1.addPoint(infrontOfTarget1);
+        startPoints.add(start_T1);
+        DistancePointList start_T2= new DistancePointList();
+        start_T2.addPoint(new Point(10.385574, -9.695185, 4.502076));
+        start_T2.addPoint(infrontOfTarget2);
+        start_T2.setDistance(calculateDistance(infrontOfTarget2 , start_T2.getPointsList().get(0)) + calculateDistance( start_T2.getPointsList().get(0) , start));
+        startPoints.add(start_T2);
+        DistancePointList start_T3= new DistancePointList();
+        start_T3.addPoint(new Point(10.458145, -9.623698, 4.958129));
+        start_T3.addPoint(new Point(10.458145, -7.993161, 4.958129));
+        start_T3.addPoint(infrontOfTarget3);
+        start_T3.setDistance(calculateDistance(start , start_T3.getPointsList().get(0)) + calculateDistance( start_T3.getPointsList().get(0) , start_T3.getPointsList().get(1))+calculateDistance( start_T3.getPointsList().get(1) , infrontOfTarget3));
+        startPoints.add(start_T3);
+        DistancePointList start_T4= new DistancePointList();
+        start_T4.addPoint(new Point(10.385574, -9.695185, 4.502076));
+        start_T4.addPoint(infrontOfTarget4);
+        start_T4.setDistance(calculateDistance(start , start_T4.getPointsList().get(0)) + calculateDistance( start_T4.getPointsList().get(0) , infrontOfTarget4));
+        startPoints.add(start_T4);
+        DistancePointList start_T5= new DistancePointList();
+        start_T5.addPoint(new Point(10.385574, -9.695185, 4.502076));
+        start_T5.addPoint(infrontOfTarget5);
+        start_T5.setDistance(calculateDistance(start , start_T5.getPointsList().get(0)) + calculateDistance( start_T5.getPointsList().get(0) , infrontOfTarget5));
+        startPoints.add(start_T5);
+        DistancePointList start_T6= new DistancePointList();
+        start_T6.addPoint(new Point(10.385574, -9.695185, 4.502076));
+        start_T6.addPoint(infrontOfTarget6);
+        start_T6.setDistance(calculateDistance(infrontOfTarget6 , start_T6.getPointsList().get(0)) + calculateDistance( start_T6.getPointsList().get(0) , start));
+        startPoints.add(start_T6);
+        DistancePointList start_start= new DistancePointList();
+        start_start.setDistance(0.0);
+        start_start.addPoint(new Point(0,0,0));
+        startPoints.add(start_start);
+        DistancePointList start__goal= new DistancePointList();
+        start__goal.setDistance(0.0);
+        start__goal.addPoint(new Point(0,0,0));
+        startPoints.add(start__goal);
+
+        pointsAndDistances.add(startPoints);
+
+        //goal
+        List<DistancePointList> goalPoints = new ArrayList<>();
+        DistancePointList goal_Qr = new DistancePointList();
+        goal_Qr.setDistance(0.0);
+        goal_Qr.addPoint(new Point(0,0,0));
+        goalPoints.add(goal_Qr);
+        DistancePointList goal_T1= new DistancePointList();
+        goal_T1.addPoint(new Point(11.204, -8.542963, 4.923365));
+        goal_T1.addPoint(goal);
+        goal_T1.setDistance(calculateDistance(infrontOfTarget1 , goal_T1.getPointsList().get(0)) + calculateDistance( goal_T1.getPointsList().get(0) , goal));
+        goalPoints.add(goal_T1);
+        DistancePointList goal_T2= new DistancePointList();
+        goal_T2.addPoint(new Point(11.204, -8.542963, 4.923365));
+        goal_T2.addPoint(new Point(10.612, -8.866519, 4.976946));
+        goal_T2.addPoint(goal);
+        goal_T2.setDistance(calculateDistance(infrontOfTarget2 , goal_T2.getPointsList().get(0)) + calculateDistance( goal_T2.getPointsList().get(0) , goal_T2.getPointsList().get(1))+calculateDistance( goal_T2.getPointsList().get(1) , goal));
+        goalPoints.add(goal_T2);
+
+        DistancePointList goal_T3= new DistancePointList();
+        goal_T3.addPoint(goal);
+        goal_T3.setDistance(calculateDistance(infrontOfTarget3 , goal));
+        goalPoints.add(goal_T3);
+        DistancePointList goal_T4= new DistancePointList();
+        goal_T4.addPoint(goal);
+        goal_T4.setDistance(calculateDistance(infrontOfTarget4 , goal));
+        goalPoints.add(goal_T4);
+        DistancePointList goal_T5= new DistancePointList();
+        goal_T5.addPoint(new Point(11.064038, -7.321528, 5.281515));
+        goal_T5.addPoint(goal);
+        goal_T5.setDistance(calculateDistance(infrontOfTarget5 , goal_T5.getPointsList().get(0)) + calculateDistance( goal_T5.getPointsList().get(0) , goal));
+        goalPoints.add(goal_T5);
+        DistancePointList goal_T6= new DistancePointList();
+        goal_T6.addPoint(new Point(11.204, -8.542963, 4.923365));
+        goal_T6.addPoint(goal);
+        goal_T6.setDistance(calculateDistance(infrontOfTarget6 , goal_T6.getPointsList().get(0)) + calculateDistance( goal_T6.getPointsList().get(0) , goal));
+        goalPoints.add(goal_T6);
+        DistancePointList goal_start= new DistancePointList();
+        T6_start.setDistance(0.0);
+        T6_start.addPoint(new Point(0,0,0));
+        goalPoints.add(goal_start);
+        DistancePointList goal_goal= new DistancePointList();
+        T6_T6.setDistance(0.0);
+        T6_T6.addPoint(new Point(0,0,0));
+        goalPoints.add(goal_goal);
+        pointsAndDistances.add(goalPoints);
+
         Log.i(TAG, "start mission") ;
         // the mission starts
         api.startMission();
         List<Integer> activeTargets = api.getActiveTargets();
-        while (activeTargets.isEmpty()){
-            activeTargets = api.getActiveTargets();
-        }
-        while ( api.getTimeRemaining().get(1) > 30000) {
-            activeTargets = api.getActiveTargets();
-            System.out.println("active targets : "+activeTargets);
-            List<Point> activePoints = new ArrayList<>();
-            Point point = api.getRobotKinematics().getPosition();
-            Vector3D currentPosition = new Vector3D(point.getX(), point.getY(), point.getZ());
-            for (int i : activeTargets) {
-                activePoints.add(Points.get(i - 1));
-            }
-            List<DoubleVectorList> pointsDistances = new ArrayList<>();
-            for (Point pt : activePoints) {
-                Vector3D activePoint = new Vector3D(pt.getX(), pt.getY(), pt.getZ());
-                DoubleVectorList shortestDistance = getShortestDistance(currentPosition, activePoint, bridgesFaces, bridgesBorders, true);
-                pointsDistances.add(shortestDistance);
-            }
-            DoubleVectorList closestPoint = closestPoint(pointsDistances);
-            List<Vector3D> vectorsPath = closestPoint.getVectorList();
-            System.out.println("distance : "+closestPoint.getDistance());
-            System.out.println("vector path : "+vectorsPath);
-            List<Point> pointsPath = new ArrayList<>();
-            for (Vector3D vector : vectorsPath) {
-                Point pt = new Point(vector.getX(), vector.getY(), vector.getZ());
-                pointsPath.add(pt);
-            }
-            Integer index = getPointIndex(pointsPath.get(pointsPath.size() - 1), Points);
-            System.out.println("index :" +index);
-
-            for (Point pt : pointsPath) {
-                Result result = api.moveTo(pt, Quaternions.get(index), true);
-                System.out.println("point: " + point +"result : "+result);
-                final int LOOP_MAX = 7;
-                int loopCounter = 0;
-                while (!result.hasSucceeded() && loopCounter < LOOP_MAX) {
-                    //retry
-                    result = api.moveTo(pt, Quaternions.get(index), true);
-                    ++loopCounter;
-                }
-            }
+        Boolean scanned = false;
+        String QrContent = "";
+        Integer closetPointIndex0 = getClosestPoint(activeTargets, pointsAndDistances.get(7), scanned);
+        Result pointResult0 = api.moveTo(Points.get(closetPointIndex0), Quaternions.get(closetPointIndex0), true);
+        if (closetPointIndex0 == 0) {
             Mat image = api.getMatNavCam();
-            api.saveMatImage ( image ,"file_name.png");
-            api.laserControl(true);
-           // api.takeTargetSnapshot(i);
-            List<Long> timeRemaining = api.getTimeRemaining();
-
-            // check the remaining milliseconds of mission time
-            if (timeRemaining.get(1) < 30000) break;
-
+            scanned = true;
+            QrContent = QrReader(image);
+        } else {
+            Result shot = api.laserControl(true);
         }
-        Point point = api.getRobotKinematics().getPosition();
-        Vector3D currentPosition = new Vector3D(point.getX(), point.getY(), point.getZ());
-        DoubleVectorList shortestDistance = getShortestDistance(currentPosition, goalVector, bridgesFaces, bridgesBorders, true);
-        List<Vector3D> vectorsPath = shortestDistance.getVectorList();
-        List<Point> pointsPath = new ArrayList<>();
-        for (Vector3D vectort : vectorsPath) {
-            Point pt = new Point(vectort.getX(), vectort.getY(), vectort.getZ());
-            pointsPath.add(pt);
-        }
-        for (Point pt : pointsPath) {
-            Result result = api.moveTo(pt, goalQuaternions, true);
-            final int LOOP_MAX = 7;
-            int loopCounter = 0;
-            while (!result.hasSucceeded() && loopCounter < LOOP_MAX) {
-                //retry
-                result = api.moveTo(pt, goalQuaternions, true);
-                ++loopCounter;
+        activeTargets = api.getActiveTargets();
+        while (!activeTargets.isEmpty() && !scanned) {
+            activeTargets = api.getActiveTargets();
+            Integer closetPointIndex = getClosestPoint(activeTargets, pointsAndDistances.get(closetPointIndex0), scanned);
+            Double distance = pointsAndDistances.get(closetPointIndex0).get(closetPointIndex).getDistance();
+            if (distance * 2000 > api.getTimeRemaining().get(1) && closetPointIndex != 0) {
+                break;
+            } else {
+                Result pointResult = api.moveTo(Points.get(closetPointIndex), Quaternions.get(closetPointIndex), true);
+                if (closetPointIndex == 0) {
+                    Mat image = api.getMatNavCam();
+                    scanned = true;
+                    QrContent = QrReader(image);
+                } else {
+                    Result shot = api.laserControl(true);
+                }
+                closetPointIndex0 = closetPointIndex;
+            }
+            if (!scanned) {
+                Result QrtResult = api.moveTo(Points.get(0), Quaternions.get(0), true);
+                Mat image = api.getMatNavCam();
+                scanned = true;
+                QrContent = QrReader(image);
+                closetPointIndex0 = 0;
             }
         }
-        String mQrContent = yourMethod();
-        api.reportMissionCompletion(mQrContent);
+        for(Point point : pointsAndDistances.get(closetPointIndex0).get(8).getPointsList()){
+            Result goalResult = api.moveTo(point, goalQuaternions, true);
+        }
+        api.reportMissionCompletion(QrContent);
+
+
+
+
 
 
     }
@@ -424,7 +616,56 @@ public class YourService extends KiboRpcService {
     }
 
     // You can add your method
-    private String yourMethod(){
-        return "your method";
+    private String QrReader(Mat image){
+        String QRcode_content = "";
+        try {
+            api.saveMatImage(image, "QR.png");
+            Mat mini_image = new Mat(image, new Rect(700, 360, 240, 240)); // ここの値は切り取る領域
+            api.saveMatImage(mini_image, "QR_mini.png");
+
+            MatOfPoint2f points = new MatOfPoint2f();
+            Mat straight_qrcode = new Mat();
+            QRCodeDetector qrc_detector = new QRCodeDetector();
+            Boolean detect_success = qrc_detector.detect(mini_image, points);
+            Log.i(TAG, "detect_success is " + detect_success.toString());
+
+            QRcode_content = qrc_detector.detectAndDecode(mini_image, points, straight_qrcode);
+            Log.i(TAG, "QRCode_content is " + QRcode_content);
+            if (QRcode_content != null) {
+                Mat straight_qrcode_gray = new Mat();
+                straight_qrcode.convertTo(straight_qrcode_gray, CvType.CV_8UC1);
+                api.saveMatImage(straight_qrcode_gray, "QR_binary.png");
+            }
+
+        } catch (Exception e) {
+            ;
+        }
+        /**
+         * QRCode_CONTENT to REPORT_MESSEGE
+         */
+        switch (QRcode_content) {
+            case "JEM":
+                QRcode_content = "STAY_AT_JEM";
+                break;
+            case "COLUMBUS":
+                QRcode_content = "GO_TO_COLUMBUS";
+                break;
+            case "RACK1":
+                QRcode_content = "CHECK_RACK_1";
+                break;
+            case "ASTROBEE":
+                QRcode_content = "I_AM_HERE";
+                break;
+            case "INTBALL":
+                QRcode_content = "LOOKING_FORWARD_TO_SEE_YOU";
+                break;
+            case "BLANK":
+                QRcode_content = "NO_PROBLEM";
+                break;
+            default:
+                QRcode_content = "";
+                break;
+        }
+        return QRcode_content;
     }
 }
