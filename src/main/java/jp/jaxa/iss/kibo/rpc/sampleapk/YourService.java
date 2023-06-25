@@ -614,6 +614,9 @@ public class YourService extends KiboRpcService {
                 continue;
             } else if (distance * 2000 > api.getTimeRemaining().get(1)) {
                 continue;
+            }else if ((distance * 2000)+4000 > api.getTimeRemaining().get(0)))
+                break;
+                }
             } else if (api.getTimeRemaining().get(1) <15000 && activeTargets.isEmpty()) {
                 for (Point point : pointsAndDistances.get(closetPointIndex0).get(3).getPointsList()) {
                     Result goalResult = api.moveTo(point, Quaternions.get(3), true);
