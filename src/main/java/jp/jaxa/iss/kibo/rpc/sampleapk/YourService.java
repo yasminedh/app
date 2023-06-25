@@ -550,6 +550,9 @@ public class YourService extends KiboRpcService {
                 QrContent = QrReader(image);
                 closetPointIndex0 = 0;
             }
+             for(Point point : pointsAndDistances.get(closetPointIndex0).get(3).getPointsList()){
+                Result goalResult = api.moveTo(point, Quaternions.get(3), true);
+            }
         }
         for(Point point : pointsAndDistances.get(closetPointIndex0).get(8).getPointsList()){
             Result goalResult = api.moveTo(point, goalQuaternions, true);
