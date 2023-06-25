@@ -610,7 +610,7 @@ public class YourService extends KiboRpcService {
             Double distance = pointsAndDistances.get(closetPointIndex0).get(closetPointIndex).getDistance();
             //checking if the time taken by astroobe to get to the next target is > than the time remaining for the 1st phase : mayouselch fel wa9t --> zeyed aka break
             //reminder : durée = distance/vitesse , noting that vitesse astrobee=0.5m/s , getTimeRemaining taati bel ms
-            if (api.getTimeRemaining().get(1) >60000 || activeTargets.isEmpty()  ) {
+            if (api.getTimeRemaining().get(1) >60000 && activeTargets.isEmpty()  ) {
                 continue;
             } else if (distance * 2000 > api.getTimeRemaining().get(1)) {
                 continue;
