@@ -585,7 +585,7 @@ public class YourService extends KiboRpcService {
                 System.out.println("its a target");
                 Result shot = api.laserControl(true);
                 try {
-                    Thread.sleep(51000);
+                    Thread.sleep(5000);
                 } catch (InterruptedException e) {
                     // Handle the exception if necessary
                     e.printStackTrace();
