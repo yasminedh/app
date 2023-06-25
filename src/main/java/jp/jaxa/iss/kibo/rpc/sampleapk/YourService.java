@@ -41,49 +41,9 @@ public class YourService extends KiboRpcService {
         double dy = pt1.getY()- pt2.getY();
         double dz = pt1.getZ()- pt2.getZ();
 
-    public static DoubleVectorList closestPoint (List<DoubleVectorList> pointsDistances ){
-        List <Double> distances = new ArrayList<>();
-        for (int i=0 ; i<pointsDistances.size();i++){
-            distances.add(pointsDistances.get(i).getDistance());
-        }
-        int minIndex = 0;
-        for (int i = 1; i < distances.size(); i++) {
-            if (distances.get(i) < distances.get(minIndex)) {
-                minIndex = i;
-            }
-        }
-        return pointsDistances.get(minIndex);
+        double distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        return distance;
     }
-
-    public static boolean isWithinBrders(Vector3D intersectionPoint , Integer bridgeNum , List<List<Vector3D>> bridgesBorders){
-        System.out.println("started isWthinBorders");
-
-        List<Vector3D> bridgeBorders = bridgesBorders.get(bridgeNum);
-        boolean isWithinBrders ;
-        Vector3D pointMin = bridgeBorders.get(0);
-        Vector3D pointMax = bridgeBorders.get(1);
-        isWithinBrders = ( intersectionPoint.getX()<pointMax.getX() && pointMin.getX() < intersectionPoint.getX()) && (( intersectionPoint.getY()<pointMax.getY() && pointMin.getY() < intersectionPoint.getY())) && ( intersectionPoint.getZ()<pointMax.getZ() && pointMin.getZ() < intersectionPoint.getZ());
-        return isWithinBrders ;
-    }
-
-
-    public static Vector3D project(Vector3D point, Plane plane) {
-        Vector3D normal = plane.getNormal();
-        double distance = plane.getOffset(point);
-        return point.subtract(normal.scalarMultiply(distance));
-    }
-
-    public static DoubleVectorList getDistanceOverBridge(Vector3D pt1, List<Vector3D> intersectedPoints ,List<Plane> intersectedFaces ){
-        System.out.println("started getDistanceOverBridge");
-
-        System.out.println("intersectedFaces : "+intersectedFaces.size());
-        Plane face1 = intersectedFaces.get(0);
-        Plane face2 = intersectedFaces.get(1);
-        Vector3D faceNormal1 = intersectedFaces.get(0).getNormal();
-        Vector3D faceNormal2 = intersectedFaces.get(1).getNormal();
-        DoubleVectorList distanceOverBridge = new DoubleVectorList();
-        if (faceNormal1.dotProduct(faceNormal2)==0){
-            Vector3D pt3 = project(intersectedPoints.get(1),face2);
     public static Integer getClosestPoint(List<Integer> activeTargets , List<DistancePointList> pointsAndDistances , Boolean scanned){
         if (!scanned){
             activeTargets.add(0);
@@ -97,8 +57,6 @@ public class YourService extends KiboRpcService {
         return minIndex;
     }
 
-        }
-    }
     protected void runPlan1(){
 
 
