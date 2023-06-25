@@ -45,15 +45,17 @@ public class YourService extends KiboRpcService {
         return distance;
     }
     public static Integer getClosestPoint(List<Integer> activeTargets , List<DistancePointList> pointsAndDistances , Boolean scanned){
+        System.out.println("looking for the closest point");
         if (!scanned){
             activeTargets.add(0);
         }
         int minIndex = activeTargets.get(0);
         for(Integer index : activeTargets ) {
-            if (pointsAndDistances.get(index).getDistance() <pointsAndDistances.get(minIndex).getDistance()) {
+            if (pointsAndDistances.get(index).getDistance() < pointsAndDistances.get(minIndex).getDistance()) {
                 minIndex = index;
             }
         }
+        System.out.println("got the closest point");
         return minIndex;
     }
 
@@ -516,20 +518,32 @@ public class YourService extends KiboRpcService {
         List<Integer> activeTargets = api.getActiveTargets();
         Boolean scanned = false;
         String QrContent = "";
+
+        //starting phase 1
+        //going from start the closest active target or to the Qr code
         Integer closetPointIndex0 = getClosestPoint(activeTargets, pointsAndDistances.get(7), scanned);
+        System.out.println("moving to the closest point");
         Result pointResult0 = api.moveTo(Points.get(closetPointIndex0), Quaternions.get(closetPointIndex0), true);
+        System.out.println("moved");
         if (closetPointIndex0 == 0) {
+            System.out.println("its the Qr");
+            //if that's the case means the active targets are ab3ad mel Qr
             Mat image = api.getMatNavCam();
             scanned = true;
             QrContent = QrReader(image);
         } else {
+            System.out.println("its a target");
             Result shot = api.laserControl(true);
         }
+
+        //continuing the 1st phase
         activeTargets = api.getActiveTargets();
-        while (!activeTargets.isEmpty() && !scanned) {
+        while (!activeTargets.isEmpty() ) {
             activeTargets = api.getActiveTargets();
             Integer closetPointIndex = getClosestPoint(activeTargets, pointsAndDistances.get(closetPointIndex0), scanned);
             Double distance = pointsAndDistances.get(closetPointIndex0).get(closetPointIndex).getDistance();
+            //checking if the time taken by astroobe to get to the next target is > than the time remaining for the 1st phase : mayouselch fel wa9t --> zeyed aka break
+            //reminder : durée = distance/vitesse , noting that vitesse astrobee=0.5m/s , getTimeRemaining taati bel ms
             if (distance * 2000 > api.getTimeRemaining().get(1) && closetPointIndex != 0) {
                 break;
             } else {
@@ -538,16 +552,22 @@ public class YourService extends KiboRpcService {
                     Mat image = api.getMatNavCam();
                     scanned = true;
                     QrContent = QrReader(image);
+                    closetPointIndex0 = 0
                 } else {
                     Result shot = api.laserControl(true);
                 }
                 closetPointIndex0 = closetPointIndex;
             }
-            
-             for(Point point : pointsAndDistances.get(closetPointIndex0).get(3).getPointsList()){
-                Result goalResult = api.moveTo(point, Quaternions.get(3), true);
-            }
+
+            //going to target 3 after phase 1
+           if ( closetPointIndex0!=3) {
+               for (Point point : pointsAndDistances.get(closetPointIndex0).get(3).getPointsList()) {
+                   Result goalResult = api.moveTo(point, Quaternions.get(3), true);
+               }
+           }
         }
+
+        //reporting  the mission
         for(Point point : pointsAndDistances.get(closetPointIndex0).get(8).getPointsList()){
             Result goalResult = api.moveTo(point, goalQuaternions, true);
         }
