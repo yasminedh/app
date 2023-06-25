@@ -552,7 +552,7 @@ public class YourService extends KiboRpcService {
                     Mat image = api.getMatNavCam();
                     scanned = true;
                     QrContent = QrReader(image);
-                    closetPointIndex0 = 0
+                    closetPointIndex0 = 0;
                 } else {
                     Result shot = api.laserControl(true);
                 }
