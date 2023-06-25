@@ -113,7 +113,7 @@ public class YourService extends KiboRpcService {
         List<DistancePointList> QrPoints = new ArrayList<>();
         DistancePointList Qr_Qr = new DistancePointList();
         Qr_Qr.setDistance(0.0);
-        Qr_Qr.addPoint(new Point(0, 0, 0));
+        Qr_Qr.addPoint(infrontOfQr);
         QrPoints.add(Qr_Qr);
         DistancePointList Qr_1 = new DistancePointList();
         Qr_1.addPoint(new Point(11.323028, -8.788241, 5.141627));
@@ -129,14 +129,17 @@ public class YourService extends KiboRpcService {
         QrPoints.add(Qr_2);
         DistancePointList Qr_3 = new DistancePointList();
         Qr_3.addPoint(new Point(11.183367, -8.716602, 5.371128));
+        Qr_3.addPoint(infrontOfTarget3);
         Qr_3.setDistance(calculateDistance(infrontOfQr, Qr_3.getPointsList().get(0)) + calculateDistance(Qr_3.getPointsList().get(0), infrontOfTarget3));
         QrPoints.add(Qr_3);
         DistancePointList Qr_4 = new DistancePointList();
         Qr_4.addPoint(new Point(11.183367, -8.716602, 5.371128));
+        Qr_4.addPoint(infrontOfTarget4);
         Qr_4.setDistance(calculateDistance(infrontOfQr, Qr_4.getPointsList().get(0)) + calculateDistance(Qr_4.getPointsList().get(0), infrontOfTarget4));
         QrPoints.add(Qr_4);
         DistancePointList Qr_5 = new DistancePointList();
         Qr_5.addPoint(new Point(11.183367, -8.716602, 5.371128));
+        Qr_5.addPoint(infrontOfTarget5);
         Qr_5.setDistance(calculateDistance(infrontOfQr, Qr_5.getPointsList().get(0)) + calculateDistance(Qr_5.getPointsList().get(0), infrontOfTarget5));
         QrPoints.add(Qr_5);
         DistancePointList Qr_6 = new DistancePointList();
@@ -163,7 +166,7 @@ public class YourService extends KiboRpcService {
         Target1Points.add(T1_Qr);
         DistancePointList T1_T1 = new DistancePointList();
         T1_T1.setDistance(0.0);
-        T1_T1.addPoint(new Point(0, 0, 0));
+        T1_T1.addPoint(infrontOfTarget1);
         Target1Points.add(T1_T1);
         DistancePointList T1_T2 = new DistancePointList();
         T1_T2.setDistance(calculateDistance(infrontOfTarget1, infrontOfTarget2));
@@ -211,7 +214,7 @@ public class YourService extends KiboRpcService {
         Target2Points.add(T2_T1);
         DistancePointList T2_T2 = new DistancePointList();
         T2_T2.setDistance(0.0);
-        T2_T2.addPoint(new Point(0, 0, 0));
+        T2_T2.addPoint(infrontOfTarget2);
         Target2Points.add(T2_T2);
         DistancePointList T2_T3 = new DistancePointList();
         T2_T3.addPoint(new Point(10.91861, -9.060668, 4.924728));
@@ -227,7 +230,7 @@ public class YourService extends KiboRpcService {
         Target2Points.add(T2_T4);
         DistancePointList T2_T5 = new DistancePointList();
         T2_T5.addPoint(new Point(10.91861, -9.060668, 4.924728));
-        T2_T5.addPoint(infrontOfTarget6);
+        T2_T5.addPoint(infrontOfTarget5);
         T2_T5.setDistance(calculateDistance(infrontOfTarget2, T2_T5.getPointsList().get(0)) + calculateDistance(T2_T5.getPointsList().get(0), infrontOfTarget5));
         Target2Points.add(T2_T5);
         DistancePointList T2_T6 = new DistancePointList();
@@ -268,7 +271,7 @@ public class YourService extends KiboRpcService {
         Target3Points.add(T3_T2);
         DistancePointList T3_T3 = new DistancePointList();
         T3_T3.setDistance(0.0);
-        T3_T3.addPoint(new Point(0, 0, 0));
+        T3_T3.addPoint(infrontOfTarget3);
         Target3Points.add(T3_T3);
         Target3Points.add(T3_T3);
         DistancePointList T3_T4 = new DistancePointList();
@@ -321,7 +324,7 @@ public class YourService extends KiboRpcService {
         Target4Points.add(T4_T3);
         DistancePointList T4_T4 = new DistancePointList();
         T4_T4.setDistance(0.0);
-        T4_T4.addPoint(new Point(0, 0, 0));
+        T4_T4.addPoint(infrontOfTarget4);
         Target4Points.add(T4_T4);
         DistancePointList T4_T5 = new DistancePointList();
         T4_T5.addPoint(infrontOfTarget5);
@@ -370,7 +373,7 @@ public class YourService extends KiboRpcService {
         Target5Points.add(T5_T4);
         DistancePointList T5_T5 = new DistancePointList();
         T5_T5.setDistance(0.0);
-        T5_T5.addPoint(new Point(0, 0, 0));
+        T5_T5.addPoint(infrontOfTarget5);
         Target5Points.add(T5_T5);
         DistancePointList T5_T6 = new DistancePointList();
         T5_T6.addPoint(new Point(11.195232, -8.363515, 5.298435));
@@ -421,7 +424,7 @@ public class YourService extends KiboRpcService {
         Target6Points.add(T6_T5);
         DistancePointList T6_T6 = new DistancePointList();
         T6_T6.setDistance(0.0);
-        T6_T6.addPoint(new Point(0, 0, 0));
+        T6_T6.addPoint(infrontOfTarget6);
         Target6Points.add(T6_T6);
         DistancePointList T6_start = new DistancePointList();
         T6_start.setDistance(0.0);
@@ -474,7 +477,7 @@ public class YourService extends KiboRpcService {
         startPoints.add(start_T6);
         DistancePointList start_start = new DistancePointList();
         start_start.setDistance(0.0);
-        start_start.addPoint(new Point(0, 0, 0));
+        start_start.addPoint(start);
         startPoints.add(start_start);
         DistancePointList start__goal = new DistancePointList();
         start__goal.setDistance(0.0);
@@ -520,12 +523,12 @@ public class YourService extends KiboRpcService {
         goal_T6.setDistance(calculateDistance(infrontOfTarget6, goal_T6.getPointsList().get(0)) + calculateDistance(goal_T6.getPointsList().get(0), goal));
         goalPoints.add(goal_T6);
         DistancePointList goal_start = new DistancePointList();
-        T6_start.setDistance(0.0);
-        T6_start.addPoint(new Point(0, 0, 0));
+        goal_start.setDistance(0.0);
+        goal_start.addPoint(new Point(0, 0, 0));
         goalPoints.add(goal_start);
         DistancePointList goal_goal = new DistancePointList();
-        T6_T6.setDistance(0.0);
-        T6_T6.addPoint(new Point(0, 0, 0));
+        goal_goal.setDistance(0.0);
+        goal_goal.addPoint(goal);
         goalPoints.add(goal_goal);
         pointsAndDistances.add(goalPoints);
 
@@ -555,6 +558,10 @@ public class YourService extends KiboRpcService {
         System.out.println("closeActiveTargets : " + closeActiveTargets);
         if (closeActiveTargets.size() == 0) {
             System.out.println("its the Qr");
+            for (Point point : pointsAndDistances.get(7).get(0).getPointsList()) {
+                Result pointResult0 = api.moveTo(point, Quaternions.get(0), true);
+                System.out.println("moved to Qr");
+            }
             //if that's the case means the active targets are ab3ad mel Qr
             Mat image = doTheQrStuff();
             QrContent = QrReader(image);
@@ -594,7 +601,7 @@ public class YourService extends KiboRpcService {
                 closeActiveTargets.remove(closetPointIndex0);
             }
             for (Point point : pointsAndDistances.get(closetPointIndex0).get(0).getPointsList()) {
-                Result pointResultt = api.moveTo(point, Quaternions.get(closetPointIndex0), true);
+                Result pointResultt = api.moveTo(point, Quaternions.get(0), true);
                 System.out.println("moved to Qr");
             }
             System.out.println("its the Qr");
@@ -614,9 +621,9 @@ public class YourService extends KiboRpcService {
                 continue;
             } else if (distance * 2000 > api.getTimeRemaining().get(1)) {
                 continue;
-            }else if ((distance * 2000)+4000 > api.getTimeRemaining().get(0)))
+            }else if ((distance * 2000)+4000 > api.getTimeRemaining().get(0)) {
                 break;
-            } else if (api.getTimeRemaining().get(1) <15000 && activeTargets.isEmpty()) {
+            } else if (api.getTimeRemaining().get(1) <15000 && activeTargets.isEmpty() && closetPointIndex0!=3) {
                 for (Point point : pointsAndDistances.get(closetPointIndex0).get(3).getPointsList()) {
                     Result goalResult = api.moveTo(point, Quaternions.get(3), true);
                 }
@@ -632,7 +639,7 @@ public class YourService extends KiboRpcService {
                     e.printStackTrace();
                 }
                 shot = api.laserControl(false);
-                
+
                 closetPointIndex0 = closetPointIndex;
             }
         }
