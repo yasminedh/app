@@ -543,13 +543,7 @@ public class YourService extends KiboRpcService {
                 }
                 closetPointIndex0 = closetPointIndex;
             }
-            if (!scanned) {
-                Result QrtResult = api.moveTo(Points.get(0), Quaternions.get(0), true);
-                Mat image = api.getMatNavCam();
-                scanned = true;
-                QrContent = QrReader(image);
-                closetPointIndex0 = 0;
-            }
+            
              for(Point point : pointsAndDistances.get(closetPointIndex0).get(3).getPointsList()){
                 Result goalResult = api.moveTo(point, Quaternions.get(3), true);
             }
